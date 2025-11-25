@@ -160,6 +160,7 @@ npm start
 
 8. Adicione o token criado como um segredo do repositório (GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret) com o nome `COPILOT_TOKEN`.
 
+
 9. Execute o workflow manualmente (GitHub -> Actions -> Build and Test with Copilot CLI -> Run workflow) para validar se o GitHub Copilot CLI está funcionando corretamente.
 
 10. Você deve ver a saída do passo "Run Copilot CLI" com a resposta para o prompt "Porque o ceu é azul?".
