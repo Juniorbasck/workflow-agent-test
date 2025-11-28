@@ -32,7 +32,7 @@ jobs:
 
       - name: Install copilot CLI
         run: |
-          npm install -g @github/copilot
+          npm install -g @github/copilot-cli
 
       - name: Run tests with coverage
         run: npm run test:coverage
@@ -88,4 +88,4 @@ jobs:
           fi
 
           # Use Copilot CLI to execute the testcoveragent prompt
-          copilot -p "Execute the .github/prompts/testcoveragent.prompt.md prompt file" --allow-all-tools --log-dir /tmp/logs --log-level debug
+          github-copilot-cli -p "Execute the .github/prompts/testcoveragent.prompt.md prompt file" --allow-all-tools --log-dir /tmp/logs --log-level debug
