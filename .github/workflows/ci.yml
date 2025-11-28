@@ -7,7 +7,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Explicitly define permissions
 permissions:
   contents: read
   pull-requests: read
@@ -30,9 +29,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install copilot CLI
+      # CORREÇÃO 1: Instalar a extensão oficial do GitHub Copilot no 'gh'
+      # Removemos o npm install que dava erro 404
+      - name: Install Copilot CLI Extension
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
         run: |
-          npm install -g @github/copilot-cli
+          gh extension install github/gh-copilot
 
       - name: Run tests with coverage
         run: npm run test:coverage
@@ -43,12 +46,10 @@ jobs:
           cp coverage/lcov.info coverage-reports/ || echo "LCOV report not found"
           cp coverage/coverage-final.json coverage-reports/ || echo "JSON coverage not found"
 
-          # Generate human-readable summary
           if [ -f coverage/lcov-report/index.html ]; then
             cp -r coverage/lcov-report coverage-reports/
           fi
 
-          # Generate text summary for Copilot CLI analysis
           echo "# Test Coverage Summary" > coverage-reports/coverage-summary.md
           echo "Generated on: $(date)" >> coverage-reports/coverage-summary.md
           echo "" >> coverage-reports/coverage-summary.md
@@ -66,26 +67,33 @@ jobs:
           path: coverage-reports/
           retention-days: 30
 
-      - name: Build application (without data hydration)
+      - name: Build application
         run: npm run build
         env:
           VITE_ENABLE_DATA_HYDRATION: "false"
 
+      # CORREÇÃO 2: Executar usando a sintaxe nova do 'gh copilot'
       - name: Generate Weekly Copilot Report and Create Issue
         env:
-          GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+          # O Copilot CLI exige a variável GH_TOKEN ou GITHUB_TOKEN configurada
           GH_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
         run: |
           echo "Testing Copilot CLI..."
 
-          # Make coverage data available in workspace
           echo "Coverage artifacts available for analysis:"
           ls -la coverage-reports/
 
-          # Copy coverage data to current directory for agent access
           if [ -d "coverage-reports" ]; then
             cp -r coverage-reports/* . 2>/dev/null || true
           fi
 
-          # Use Copilot CLI to execute the testcoveragent prompt
-          github-copilot-cli -p "Execute the .github/prompts/testcoveragent.prompt.md prompt file" --allow-all-tools --log-dir /tmp/logs --log-level debug
+          # Lendo o conteúdo do arquivo de prompt para passar como argumento
+          # A nova CLI não tem flag -p, então passamos o texto direto
+          PROMPT_CONTENT=$(cat .github/prompts/testcoveragent.prompt.md 2>/dev/null || echo "Analyze the coverage summary and suggest improvements.")
+          SUMMARY_CONTENT=$(cat coverage-summary.md 2>/dev/null || echo "No summary found.")
+
+          echo "Sending query to Copilot..."
+
+          # Usamos 'explain' combinando o prompt e o sumário
+          gh copilot explain "$PROMPT_CONTENT \n\n Data: $SUMMARY_CONTENT"
